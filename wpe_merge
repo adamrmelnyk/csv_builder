@@ -1,0 +1,2 @@
+#!/bin/ash
+go run wpe_merge.go $1 $2
