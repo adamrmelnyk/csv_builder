@@ -1,34 +1,30 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"io"
-	"io/ioutil"
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
-	"reflect"
 )
 
-var client = &http.Client{ Timeout: 30 * time.Second }
+var client = &http.Client{Timeout: 30 * time.Second}
 var apiURL = "http://interview.wpengine.io/v1/accounts"
 
+// Account is an exported struct
+// that contains all the same data present in the json api
 type Account struct {
-	Account_id int `json:"account_id"`
-	Status string `json:"status"`
+	Account_id int    `json:"account_id"`
+	Status     string `json:"status"`
 	Created_on string `json:"created_on"`
 }
 
-// TODO: Remove if we don't end up using it
-type APIResponse struct {
-	Count int `json:"count"`
-	Next string `json:"next"`
-	Previous string `json:"previous"`
-	Results []Account `json:"results"`
-}
-
+// AccountInfo is an exported function
+// that calls an API and returns an Account struct
 func AccountInfo(id int) Account {
 	accountURL := fmt.Sprintf("%s/%d", apiURL, id)
 	response, err := client.Get(accountURL)
@@ -45,23 +41,21 @@ func AccountInfo(id int) Account {
 	}
 
 	apiResponse := Account{}
-	json.Unmarshal(body, &apiResponse)
-	fmt.Println(apiResponse)
+	jsonErr := json.Unmarshal(body, &apiResponse)
+	if jsonErr != nil {
+		os.Stderr.WriteString("Failed to unmarshal JSON")
+		os.Exit(1)
+	}
 	return apiResponse
 }
 
 func main() {
-	if len(os.Args) != 3 {
+	if len(os.Args) < 3 {
 		os.Stderr.WriteString("Wrong number of arguements.\nCorrect format: wpe_merge <input file.csv> <output file.csv>")
 		os.Exit(1)
 	}
 	inputFile := os.Args[1]
 	outputFile := os.Args[2]
-
-	// TODO: remove after testing
-	fmt.Println(inputFile)
-	fmt.Println(outputFile)
-	// TODO: we should also check that they are csv
 
 	csvFile, err := os.Open(inputFile)
 	if err != nil {
@@ -69,6 +63,18 @@ func main() {
 		os.Exit(1)
 	}
 	reader := csv.NewReader(csvFile)
+
+	outFile, err := os.Create(outputFile)
+	if err != nil {
+		os.Stderr.WriteString("Failed to create output file\n")
+		os.Exit(1)
+	}
+	defer outFile.Close()
+
+	writer := csv.NewWriter(outFile)
+	defer writer.Flush()
+	writer.Write([]string{"Account ID", "First Name", "Created On", "Status", "Status Set on"})
+
 	for {
 		record, err := reader.Read()
 		if err == io.EOF {
@@ -78,17 +84,11 @@ func main() {
 			os.Stderr.WriteString("Failed to read file\n")
 			os.Exit(1)
 		}
-
-		fmt.Println(record[0])
-		// TODO: Everything is coming back as a string. do we coerce into an int
-		// or do we make the request and if nothing comes back then we don't care.
-		// if we do check that we can ensure that we aren't doing work we don't need to
-		fmt.Println(reflect.TypeOf(record[0]))
-		AccountInfo(314159)
+		id, err := strconv.Atoi(record[0])
+		if err == nil {
+			// TODO: What if nothing comes back?
+			account := AccountInfo(id)
+			writer.Write([]string{record[0], record[2], record[3], account.Status, account.Created_on})
+		}
 	}
-
-	// TODO: combine data with csv
-		// TODO: the api date format is yyyy-mm-dd but the csv is mm/dd/yy
-		// TODO: I need the format the data into a hash first or something so I don't have to traverse the whole thing
-	// TODO: write to new csv
 }
