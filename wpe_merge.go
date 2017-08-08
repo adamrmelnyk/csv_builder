@@ -12,9 +12,8 @@ import (
 	"reflect"
 )
 
-// TODO: Change var name
 var client = &http.Client{ Timeout: 30 * time.Second }
-var apiURL = "http://interview.wpengine.io/v1/accounts/"
+var apiURL = "http://interview.wpengine.io/v1/accounts"
 
 type Account struct {
 	Account_id int `json:"account_id"`
@@ -31,7 +30,7 @@ type APIResponse struct {
 }
 
 func AccountInfo(id int) Account {
-	accountURL := fmt.Sprintf("%s%d", apiURL, id)
+	accountURL := fmt.Sprintf("%s/%d", apiURL, id)
 	response, err := client.Get(accountURL)
 	if err != nil {
 		os.Stderr.WriteString("Failed to make request to API\n")
