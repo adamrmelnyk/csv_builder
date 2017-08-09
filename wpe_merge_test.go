@@ -14,15 +14,18 @@ func TestAccountInfo(t *testing.T) {
 		Reply(200).
 		JSON(`{"account_id": 777, "status": "fake status", "created_on": "2012-01-12"}`)
 
-	first_account := main.AccountInfo(777)
-	if first_account.Account_id != 777 {
-		t.Error("Expected 777, got: ", first_account.Account_id)
+	firstAcc, err := main.AccountInfo(777)
+	if firstAcc.AccountID != 777 {
+		t.Error("Expected 777, got: ", firstAcc.AccountID)
 	}
-	if first_account.Status != "fake status" {
-		t.Error("Expected fake status, got: ", first_account.Status)
+	if firstAcc.Status != "fake status" {
+		t.Error("Expected fake status, got: ", firstAcc.Status)
 	}
-	if first_account.Created_on != "2012-01-12" {
-		t.Error("Expected 2012-01-12, got: ", first_account.Created_on)
+	if firstAcc.CreatedOn != "2012-01-12" {
+		t.Error("Expected 2012-01-12, got: ", firstAcc.CreatedOn)
+	}
+	if err != nil {
+		t.Error("Expected err to be nil, got: ", err)
 	}
 
 	gock.New("http://interview.wpengine.io/v1/accounts").
@@ -30,14 +33,34 @@ func TestAccountInfo(t *testing.T) {
 		Reply(200).
 		JSON(`{"account": 777, "not_status": "fake status", "not_created_on": "2012-01-12"}`)
 
-	second_account := main.AccountInfo(777)
-	if second_account.Account_id != 0 {
-		t.Error("Expected 0, got: ", second_account.Account_id)
+	secondAcc, _ := main.AccountInfo(777)
+	if secondAcc.AccountID != 0 {
+		t.Error("Expected 0, got: ", secondAcc.AccountID)
 	}
-	if second_account.Status != "" {
-		t.Error("Expected '', got: ", second_account.Status)
+	if secondAcc.Status != "" {
+		t.Error("Expected '', got: ", secondAcc.Status)
 	}
-	if second_account.Created_on != "" {
-		t.Error("Expected '', got: ", second_account.Created_on)
+	if secondAcc.CreatedOn != "" {
+		t.Error("Expected '', got: ", secondAcc.CreatedOn)
+	}
+
+	gock.New("http://interview.wpengine.io/v1/accounts").
+		Get("/777").
+		Reply(404).
+		JSON(`{"detail": "Not found."}`)
+
+	_, err = main.AccountInfo(777)
+	if err == nil {
+		t.Error("Expected '404, account not found', got: ", err)
+	}
+
+	gock.New("http://interview.wpengine.io/v1/accounts").
+		Get("/777").
+		Reply(500).
+		JSON(`{"Error": "Internal Server Error"}`)
+
+	_, err = main.AccountInfo(777)
+	if err == nil {
+		t.Error("Expected 'Error 500: Could not access account', git: ", err)
 	}
 }
