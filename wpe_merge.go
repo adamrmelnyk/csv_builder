@@ -81,24 +81,28 @@ func combineDataInCSV(reader *csv.Reader, writer *csv.Writer) {
 		if err != nil {
 			breakAndThrowErr("Failed to read file\n")
 		}
-		writeToCsv(record, writer)
+		err = writeToCsv(record, writer)
+		if err != nil {
+			breakAndThrowErr("Failed to write to new CSV")
+		}
 	}
 }
 
 // writeToCsv is an unexported function
 // that takes an account record and
 // combines it with data from the api
-func writeToCsv(record []string, writer *csv.Writer) {
+func writeToCsv(record []string, writer *csv.Writer) error {
 	id, err := strconv.Atoi(record[0])
 	if err == nil && len(record) == 4 {
 		account, err := AccountInfo(id)
 		if err == nil {
 			wErr := writer.Write([]string{record[0], record[2], record[3], account.Status, account.CreatedOn})
 			if wErr != nil {
-				breakAndThrowErr("Failed to write to new CSV")
+				return errors.New("Failed to write to new CSV")
 			}
 		}
 	}
+	return nil
 }
 
 func main() {
