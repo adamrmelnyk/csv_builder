@@ -16,16 +16,20 @@ import (
 var client = &http.Client{Timeout: 30 * time.Second}
 var apiURL = "http://interview.wpengine.io/v1/accounts"
 
+const minimumArgs = 3
+
 // Account is an exported struct
 // that contains all the same data present in the json api
 type Account struct {
-	AccountId int    `json:"account_id"`
+	AccountID int    `json:"account_id"`
 	Status    string `json:"status"`
 	CreatedOn string `json:"created_on"`
 }
 
+// breakAndThrowErr is an unexported function
+// that writes to stderr and exits
 func breakAndThrowErr(err string) {
-	os.Stderr.WriteString("Failed to write headers to new csv")
+	os.Stderr.WriteString(err)
 	os.Exit(1)
 }
 
@@ -61,10 +65,10 @@ func AccountInfo(id int) (Account, error) {
 	return apiResponse, nil
 }
 
-// CombineDataInCSV is an exported function
+// CombineDataInCSV is an unexported function
 // that combines data from the input csv and the api
 // and writes to the out file.
-func CombineDataInCSV(reader *csv.Reader, writer *csv.Writer) {
+func combineDataInCSV(reader *csv.Reader, writer *csv.Writer) {
 	hErr := writer.Write([]string{"Account ID", "First Name", "Created On", "Status", "Status Set on"})
 	if hErr != nil {
 		breakAndThrowErr("Failed to write headers to new csv")
@@ -77,22 +81,28 @@ func CombineDataInCSV(reader *csv.Reader, writer *csv.Writer) {
 		if err != nil {
 			breakAndThrowErr("Failed to read file\n")
 		}
-		id, err := strconv.Atoi(record[0])
+		writeToCsv(record, writer)
+	}
+}
+
+// writeToCsv is an unexported function
+// that takes an account record and
+// combines it with data from the api
+func writeToCsv(record []string, writer *csv.Writer) {
+	id, err := strconv.Atoi(record[0])
+	if err == nil && len(record) == 4 {
+		account, err := AccountInfo(id)
 		if err == nil {
-			id = 7777
-			account, err := AccountInfo(id)
-			if err == nil {
-				wErr := writer.Write([]string{record[0], record[2], record[3], account.Status, account.CreatedOn})
-				if wErr != nil {
-					breakAndThrowErr("Failed to write to new CSV")
-				}
+			wErr := writer.Write([]string{record[0], record[2], record[3], account.Status, account.CreatedOn})
+			if wErr != nil {
+				breakAndThrowErr("Failed to write to new CSV")
 			}
 		}
 	}
 }
 
 func main() {
-	if len(os.Args) < 3 {
+	if len(os.Args) < minimumArgs {
 		breakAndThrowErr("Wrong number of arguements.\nCorrect format: wpe_merge <input file.csv> <output file.csv>")
 	}
 	inputFile := os.Args[1]
@@ -113,5 +123,5 @@ func main() {
 	writer := csv.NewWriter(outFile)
 	defer writer.Flush()
 
-	CombineDataInCSV(reader, writer)
+	combineDataInCSV(reader, writer)
 }

@@ -15,8 +15,8 @@ func TestAccountInfo(t *testing.T) {
 		JSON(`{"account_id": 777, "status": "fake status", "created_on": "2012-01-12"}`)
 
 	firstAcc, err := main.AccountInfo(777)
-	if firstAcc.AccountId != 777 {
-		t.Error("Expected 777, got: ", firstAcc.AccountId)
+	if firstAcc.AccountID != 777 {
+		t.Error("Expected 777, got: ", firstAcc.AccountID)
 	}
 	if firstAcc.Status != "fake status" {
 		t.Error("Expected fake status, got: ", firstAcc.Status)
@@ -34,8 +34,8 @@ func TestAccountInfo(t *testing.T) {
 		JSON(`{"account": 777, "not_status": "fake status", "not_created_on": "2012-01-12"}`)
 
 	secondAcc, _ := main.AccountInfo(777)
-	if secondAcc.AccountId != 0 {
-		t.Error("Expected 0, got: ", secondAcc.AccountId)
+	if secondAcc.AccountID != 0 {
+		t.Error("Expected 0, got: ", secondAcc.AccountID)
 	}
 	if secondAcc.Status != "" {
 		t.Error("Expected '', got: ", secondAcc.Status)
